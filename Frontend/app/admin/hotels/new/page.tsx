@@ -40,7 +40,7 @@ export default function NewHotelPage() {
     setSaving(true);
     try {
       const res = await createHotel(form);
-      const hotelId = res.data.hotelId;
+      const hotelId = res.data.hotelid || res.data.hotelId;
 
       // Create any rooms that were added
       for (const room of rooms) {

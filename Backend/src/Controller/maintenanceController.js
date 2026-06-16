@@ -1,18 +1,17 @@
 import { getPool } from "../config/db.js";
-import sql from "mssql";
 // GET /api/maintenance
 export const getAllMaintenance = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT m.*, r.RoomName, h.Name AS HotelName, s.Name AS StaffName
-      FROM Maintenance m
-      JOIN Room r ON m.RoomID = r.RoomID
-      JOIN Hotel h ON r.HotelID = h.HotelID
-      LEFT JOIN Staff s ON m.StaffID = s.StaffID
-      ORDER BY m.MaintenanceID DESC
-    `);
-    res.json(result.recordset);
+  const result = await pool.query(`
+  SELECT m.*, r."roomname", h."name" AS "hotelname", s."name" AS "staffname"
+  FROM "maintenance" m
+  JOIN "room" r ON m."roomid" = r."roomid"
+  JOIN "hotel" h ON r."hotelid" = h."hotelid"
+  LEFT JOIN "staff" s ON m."staffid" = s."staffid"
+  ORDER BY m."maintenanceid" DESC
+`);
+res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -24,19 +23,15 @@ export const createMaintenance = async (req, res) => {
   if (!roomId || !issue) return res.status(400).json({ message: "RoomID and issue required" });
   try {
     const pool = await getPool();
-    const idRes = await pool.request().query("SELECT ISNULL(MAX(MaintenanceID),0)+1 AS NextID FROM Maintenance");
-    await pool
-      .request()
-      .input("MaintenanceID", sql.Int, idRes.recordset[0].NextID)
-      .input("RoomID", sql.Int, roomId)
-      .input("StaffID", sql.Int, staffId || null)
-      .input("Issue", sql.VarChar, issue)
-      .input("Status", sql.VarChar, "Pending")
-      .query("INSERT INTO Maintenance (MaintenanceID, RoomID, StaffID, Issue, Status) VALUES (@MaintenanceID, @RoomID, @StaffID, @Issue, @Status)");
+    const idRes = await pool.query('SELECT COALESCE(MAX("maintenanceid"),0)+1 AS "nextid" FROM "maintenance"');
 
-    // Mark room as maintenance
-    await pool.request().input("rid", sql.Int, roomId).query("UPDATE Room SET Status='Maintenance' WHERE RoomID=@rid");
+await pool.query(
+  'INSERT INTO "maintenance" ("maintenanceid","roomid","staffid","issue","status") VALUES ($1,$2,$3,$4,$5)',
+  [idRes.rows[0].NextID, roomId, staffId || null, issue, "Pending"]
+);
 
+await pool.query(`UPDATE "room" SET "status"='Maintenance' WHERE "roomid"=$1`, [roomId]);
+ 
     res.status(201).json({ message: "Maintenance request created" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -51,20 +46,17 @@ export const updateMaintenanceStatus = async (req, res) => {
 
   try {
     const pool = await getPool();
-    await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .input("status", sql.VarChar, status)
-      .input("staffId", sql.Int, staffId || null)
-      .query("UPDATE Maintenance SET Status=@status, StaffID=ISNULL(@staffId, StaffID) WHERE MaintenanceID=@id");
+   await pool.query(
+  'UPDATE "maintenance" SET "status"=$1, "staffid"=COALESCE($2, "staffid") WHERE "maintenanceid"=$3',
+  [status, staffId || null, req.params.id]
+);
 
-    // If resolved, mark room available
-    if (status === "Resolved") {
-      const m = await pool.request().input("id", sql.Int, req.params.id).query("SELECT RoomID FROM Maintenance WHERE MaintenanceID=@id");
-      if (m.recordset.length > 0) {
-        await pool.request().input("rid", sql.Int, m.recordset[0].RoomID).query("UPDATE Room SET Status='Available' WHERE RoomID=@rid");
-      }
-    }
+if (status === "Resolved") {
+  const m = await pool.query('SELECT "roomid" FROM "maintenance" WHERE "maintenanceid"=$1', [req.params.id]);
+  if (m.rows.length > 0) {
+    await pool.query(`UPDATE "room" SET "status"='Available' WHERE "roomid"=$1`, [m.rows[0].RoomID]);
+  }
+}
 
     res.json({ message: "Maintenance updated" });
   } catch (err) {
@@ -76,10 +68,9 @@ export const updateMaintenanceStatus = async (req, res) => {
 export const deleteMaintenance = async (req, res) => {
   try {
     const pool = await getPool();
-    await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM Maintenance WHERE MaintenanceID=@id");
+await pool.query('DELETE FROM "maintenance" WHERE "maintenanceid"=$1', [req.params.id]);
     res.json({ message: "Maintenance record deleted" });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-

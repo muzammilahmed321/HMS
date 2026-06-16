@@ -78,8 +78,8 @@ export default function AdminLayout({ children }) {
           user && (
             <div className="p-4 border-t border-brand-700">
               <div className="mb-3">
-                <div className="font-jost text-sm font-medium">{user.Name}</div>
-                <div className="font-jost text-xs text-brand-300">{user.Email}</div>
+                <div className="font-jost text-sm font-medium">{user.name}</div>
+                <div className="font-jost text-xs text-brand-300">{user.email}</div>
               </div>
               <button onClick={logout} className="flex items-center gap-2 text-brand-300 hover:text-white font-jost text-xs transition-colors">
                 <LogOut size={14} /> Sign Out

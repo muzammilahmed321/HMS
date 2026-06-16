@@ -41,26 +41,26 @@ export default function HotelsPage() {
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {hotels.map((hotel) => (
-              <Link key={hotel.HotelID} href={`/hotels/${hotel.HotelID}`}>
+              <Link key={hotel.hotelid} href={`/hotels/${hotel.hotelid}`}>
                 <div className="group rounded-2xl overflow-hidden shadow-sm border border-neutral-100 hover:shadow-xl transition-shadow duration-300">
                   <div className="relative h-52 overflow-hidden">
                     <img
-                      src={   toUrl(hotel.MainImage)|| "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80"}
-                      alt={hotel.Name}
+                      src={   toUrl(hotel.mainimage)|| "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80"}
+                      alt={hotel.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                   </div>
                   <div className="p-5">
-                    <h3 className="font-playfair text-xl mb-2">{hotel.Name}</h3>
+                    <h3 className="font-playfair text-xl mb-2">{hotel.name}</h3>
                     <div className="flex items-center gap-1 text-neutral-400 text-xs font-jost mb-2">
                       <MapPin size={12} />
-                      <span>{hotel.Location}</span>
+                      <span>{hotel.location}</span>
                     </div>
                     <div className="flex items-center gap-1 text-neutral-400 text-xs font-jost mb-4">
                       <Clock size={12} />
                
-                      <span>Check-in: {formatTime(hotel.CheckinTime)} · Check-out: {formatTime(hotel.CheckoutTime)}</span>
+                      <span>Check-in: {formatTime(hotel.checkintime)} · Check-out: {formatTime(hotel.checkouttime)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-jost text-brand-600 bg-brand-50 border border-brand-100 rounded-full px-3 py-1">View Rooms</span>

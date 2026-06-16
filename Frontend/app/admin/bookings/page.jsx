@@ -32,8 +32,8 @@ export default function AdminBookings() {
 
   const FILTERS = ["All", "Confirmed", "Completed", "Cancelled"];
   const filtered = bookings.filter((b) => {
-    const matchStatus = filter === "All" || b.Status === filter;
-    const matchSearch = !search || b.GuestName?.toLowerCase().includes(search.toLowerCase()) || b.HotelName?.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filter === "All" || b.status === filter;
+    const matchSearch = !search || b.guestname?.toLowerCase().includes(search.toLowerCase()) || b.hotelname?.toLowerCase().includes(search.toLowerCase());
     return matchStatus && matchSearch;
   });
 
@@ -77,36 +77,36 @@ export default function AdminBookings() {
               </thead>
               <tbody>
                 {filtered.map((b) => (
-                  <tr key={b.BookingID} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
-                    <td className="px-4 py-3 text-neutral-400 text-xs">#{b.BookingID}</td>
-                    <td className="px-4 py-3 font-medium whitespace-nowrap">{b.GuestName}</td>
+                  <tr key={b.bookingid} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
+                    <td className="px-4 py-3 text-neutral-400 text-xs">#{b.bookingid}</td>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">{b.guestname}</td>
                     <td className="px-4 py-3 text-xs text-neutral-400">
-                      <div>{b.GuestEmail}</div>
-                      <div>{b.GuestPhone}</div>
+                      <div>{b.guestemail}</div>
+                      <div>{b.guestphone}</div>
                     </td>
-                    <td className="px-4 py-3 text-neutral-600">{b.HotelName}</td>
-                    <td className="px-4 py-3 text-xs text-neutral-500 max-w-32 truncate">{b.Rooms}</td>
+                    <td className="px-4 py-3 text-neutral-600">{b.hotelname}</td>
+                    <td className="px-4 py-3 text-xs text-neutral-500 max-w-32 truncate">{b.rooms}</td>
                     <td className="px-4 py-3 text-xs text-neutral-500 whitespace-nowrap">
-                      <div>{new Date(b.CheckIn).toLocaleDateString()}</div>
-                      <div className="text-neutral-300">→ {new Date(b.CheckOut).toLocaleDateString()}</div>
+                      <div>{new Date(b.checkin).toLocaleDateString()}</div>
+                      <div className="text-neutral-300">→ {new Date(b.checkout).toLocaleDateString()}</div>
                     </td>
-                    <td className="px-4 py-3 font-medium text-brand-700 whitespace-nowrap">${parseFloat(b.GrandTotal).toFixed(2)}</td>
+                    <td className="px-4 py-3 font-medium text-brand-700 whitespace-nowrap">${parseFloat(b.grandtotal).toFixed(2)}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs border rounded-full px-2.5 py-0.5 ${STATUS_COLORS[b.Status] || "bg-neutral-50 text-neutral-600"}`}>{b.Status}</span>
+                      <span className={`text-xs border rounded-full px-2.5 py-0.5 ${STATUS_COLORS[b.status] || "bg-neutral-50 text-neutral-600"}`}>{b.status}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-1">
-                        {b.Status === "Confirmed" && (
+                        {b.status === "Confirmed" && (
                           <>
-                            <button onClick={() => updateStatus(b.BookingID, "Completed")} title="Mark Completed" className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"><CheckCircle size={15} /></button>
-                            <button onClick={() => updateStatus(b.BookingID, "Cancelled")} title="Cancel" className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"><XCircle size={15} /></button>
+                            <button onClick={() => updateStatus(b.bookingid, "Completed")} title="Mark Completed" className="p-1.5 rounded-lg text-green-600 hover:bg-green-50 transition-colors"><CheckCircle size={15} /></button>
+                            <button onClick={() => updateStatus(b.bookingid, "Cancelled")} title="Cancel" className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 transition-colors"><XCircle size={15} /></button>
                           </>
                         )}
-                        {b.Status === "Completed" && (
+                        {b.status === "Completed" && (
                           <span className="text-xs text-neutral-300 font-light">Done</span>
                         )}
-                        {b.Status === "Cancelled" && (
-                          <button onClick={() => updateStatus(b.BookingID, "Confirmed")} title="Restore" className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"><Flag size={15} /></button>
+                        {b.status === "Cancelled" && (
+                          <button onClick={() => updateStatus(b.bookingid, "Confirmed")} title="Restore" className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 transition-colors"><Flag size={15} /></button>
                         )}
                       </div>
                     </td>

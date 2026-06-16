@@ -29,9 +29,15 @@ function ImageGalleryModal({ hotel, onClose }) {
 
   const fetchPics = () => {
     setLoadingPics(true);
-    getHotelPictures(hotel.HotelID)
-      .then((r) => { setPics(r.data); setCurrent(0); })
-      .catch(() => toast.error("Failed to load images"))
+    getHotelPictures(hotel.hotelid)
+  .then((r) => {
+    console.log("Pictures Response:", r.data);
+    setPics(r.data);
+  })
+      .catch((e) => {
+        console.error("Failed to load images:", e);
+        toast.error("Failed to load images");
+      })
       .finally(() => setLoadingPics(false));
   };
 
@@ -55,7 +61,7 @@ function ImageGalleryModal({ hotel, onClose }) {
       for (const file of files) {
         const fd = new FormData();
         fd.append("image", file);
-        await uploadHotelPicture(hotel.HotelID, fd);
+        await uploadHotelPicture(hotel.hotelid, fd);
       }
       toast.success(`${files.length} image${files.length > 1 ? "s" : ""} uploaded`);
       fetchPics();
@@ -69,15 +75,17 @@ function ImageGalleryModal({ hotel, onClose }) {
 
   const handleDelete = async (picId) => {
     if (!confirm("Remove this image from the hotel?")) return;
+    console.log('picid',picId)
     setDeleting(picId);
     try {
       await deleteHotelPicture(picId);
       toast.success("Image removed");
-      const updated = pics.filter((p) => p.HotelPicsID !== picId);
+      const updated = pics.filter((p) => p.hotelpicsid !== picId);
       setPics(updated);
       setCurrent((c) => Math.min(c, Math.max(0, updated.length - 1)));
-    } catch {
+    } catch(e) {
       toast.error("Failed to delete image");
+      console.error("Delete error:", e);
     } finally {
       setDeleting(null);
     }
@@ -90,7 +98,7 @@ function ImageGalleryModal({ hotel, onClose }) {
         {/* Modal header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-100 flex-shrink-0">
           <div>
-            <h2 className="font-playfair text-xl">{hotel.Name}</h2>
+            <h2 className="font-playfair text-xl">{hotel.name}</h2>
             <p className="font-jost text-xs text-neutral-400 mt-0.5">
               {loadingPics ? "Loading…" : `${pics.length} photo${pics.length !== 1 ? "s" : ""}`}
             </p>
@@ -161,11 +169,11 @@ function ImageGalleryModal({ hotel, onClose }) {
                     {current + 1} / {pics.length}
                   </span>
                   <button
-                    onClick={() => handleDelete(pics[current].HotelPicsID)}
+                    onClick={() => handleDelete(pics[current].hotelPicsId)}
                     disabled={!!deleting}
                     className="flex items-center gap-1.5 bg-red-600/80 hover:bg-red-600 text-white font-jost text-xs px-3 py-1.5 rounded-full transition-colors disabled:opacity-50"
                   >
-                    {deleting === pics[current]?.HotelPicsID
+                    {deleting === pics[current]?.hotelpicsid
                       ? <Loader2 size={11} className="animate-spin" />
                       : <Trash2 size={11} />}
                     Remove this photo
@@ -177,7 +185,7 @@ function ImageGalleryModal({ hotel, onClose }) {
               <div className="flex gap-2 p-3 overflow-x-auto bg-neutral-50 border-t border-neutral-100 flex-shrink-0">
                 {pics.map((pic, i) => (
                   <button
-                    key={pic.HotelPicsID}
+                    key={pic.hotelpicsid}
                     onClick={() => setCurrent(i)}
                     className={`flex-shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all duration-150 ${
                       i === current
@@ -199,7 +207,7 @@ function ImageGalleryModal({ hotel, onClose }) {
 
 // ── Hotel Card ──────────────────────────────────────────────
 function HotelCard({ hotel, onDelete, onViewPhotos }) {
-  const mainImg = toUrl(hotel.MainImage);
+  const mainImg = toUrl(hotel.mainimage);
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden group hover:shadow-lg transition-shadow duration-200">
@@ -211,7 +219,7 @@ function HotelCard({ hotel, onDelete, onViewPhotos }) {
         {mainImg ? (
           <img
             src={mainImg}
-            alt={hotel.Name}
+            alt={hotel.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
         ) : (
@@ -228,7 +236,7 @@ function HotelCard({ hotel, onDelete, onViewPhotos }) {
         <div className="absolute top-3 left-3">
           <span className="flex items-center gap-1.5 bg-black/55 text-white font-jost text-xs px-2.5 py-1 rounded-full">
             <Images size={11} />
-            {hotel.PicCount ?? 0} photos
+            {hotel.piccount ?? 0} photos
           </span>
         </div>
 
@@ -242,22 +250,22 @@ function HotelCard({ hotel, onDelete, onViewPhotos }) {
 
       {/* Info block */}
       <div className="p-5">
-        <h3 className="font-playfair text-lg mb-1">{hotel.Name}</h3>
+        <h3 className="font-playfair text-lg mb-1">{hotel.name}</h3>
         <div className="flex flex-wrap gap-x-4 gap-y-1 font-jost font-light text-xs text-neutral-400 mb-4">
           <span className="flex items-center gap-1.5">
             <MapPin size={11} className="text-brand-400" />
-            {hotel.Location}
+            {hotel.location}
           </span>
           <span className="flex items-center gap-1.5">
             <Clock size={11} className="text-brand-400" />
-            In {formatTime(hotel.CheckinTime)} · Out {formatTime(hotel.CheckoutTime)}
+            In {formatTime(hotel.checkintime)} · Out {formatTime(hotel.checkouttime)}
           </span>
         </div>
 
         {/* Action row */}
         <div className="flex gap-2">
           <Link
-            href={`/admin/hotels/${hotel.HotelID}/edit`}
+            href={`/admin/hotels/${hotel.hotelid}/edit`}
             className="flex-1 flex items-center justify-center gap-1.5 text-xs font-jost font-medium border border-neutral-200 py-2 rounded-lg hover:bg-brand-50 hover:border-brand-200 hover:text-brand-700 transition-colors"
           >
             <Edit2 size={12} /> Edit Details
@@ -269,7 +277,7 @@ function HotelCard({ hotel, onDelete, onViewPhotos }) {
             <Images size={12} /> Photos
           </button>
           <button
-            onClick={() => onDelete(hotel.HotelID, hotel.Name)}
+            onClick={() => onDelete(hotel.hotelid, hotel.name)}
             className="p-2 border border-neutral-200 rounded-lg text-neutral-400 hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors"
             title="Delete hotel"
           >
@@ -310,7 +318,7 @@ export default function AdminHotelsList() {
   };
 
   const filtered = hotels.filter(
-    (h) => !search || h.Name?.toLowerCase().includes(search.toLowerCase()) || h.Location?.toLowerCase().includes(search.toLowerCase())
+    (h) => !search || h.name?.toLowerCase().includes(search.toLowerCase()) || h.location?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -371,7 +379,7 @@ export default function AdminHotelsList() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {filtered.map((hotel) => (
             <HotelCard
-              key={hotel.HotelID}
+              key={hotel.hotelid}
               hotel={hotel}
               onDelete={handleDelete}
               onViewPhotos={setGalleryHotel}

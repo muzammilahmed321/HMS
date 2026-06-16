@@ -92,14 +92,14 @@ function NewRequestModal({ onClose, onCreated }) {
             <label className="flex items-center gap-1.5 font-jost text-xs font-medium text-neutral-600 mb-1.5"><Hotel size={12} /> Property</label>
             <select required className={INPUT} value={form.hotelId} onChange={(e) => setForm({ ...form, hotelId: e.target.value })}>
               <option value="">Select hotel…</option>
-              {hotels.map((h) => <option key={h.HotelID} value={h.HotelID}>{h.Name} — {h.Location}</option>)}
+              {hotels.map((h) => <option key={h.hotelid} value={h.hotelid}>{h.name} — {h.location}</option>)}
             </select>
           </div>
           <div>
             <label className="flex items-center gap-1.5 font-jost text-xs font-medium text-neutral-600 mb-1.5"><Bed size={12} /> Room</label>
             <select required className={INPUT} value={form.roomId} onChange={(e) => setForm({ ...form, roomId: e.target.value })} disabled={!form.hotelId}>
               <option value="">Select room…</option>
-              {rooms.map((r) => <option key={r.RoomID} value={r.RoomID}>{r.RoomName} — ${r.Price}/night ({r.Status})</option>)}
+              {rooms.map((r) => <option key={r.roomid} value={r.roomid}>{r.roomname} — ${r.price}/night ({r.status})</option>)}
             </select>
           </div>
           <div>
@@ -108,7 +108,7 @@ function NewRequestModal({ onClose, onCreated }) {
             </label>
             <select className={INPUT} value={form.staffId} onChange={(e) => setForm({ ...form, staffId: e.target.value })} disabled={!form.hotelId}>
               <option value="">Unassigned</option>
-              {staff.map((s) => <option key={s.StaffID} value={s.StaffID}>{s.Name} — {s.Role}</option>)}
+              {staff.map((s) => <option key={s.staffid} value={s.staffid}>{s.name} — {s.role}</option>)}
             </select>
           </div>
           <div>
@@ -200,7 +200,7 @@ function UpdatePopup({ staff, saving, formState, onChange, onSave, onClose, anch
         <label className="font-jost text-xs text-neutral-500 mb-1 block">Reassign Staff</label>
         <select className={INPUT} value={formState.staffId} onChange={(e) => onChange({ ...formState, staffId: e.target.value })}>
           <option value="">Unassigned</option>
-          {staff.map((s) => <option key={s.StaffID} value={s.StaffID}>{s.Name} — {s.Role}</option>)}
+          {staff.map((s) => <option key={s.staffid} value={s.staffid}>{s.name} — {s.role}</option>)}
         </select>
       </div>
 
@@ -223,25 +223,25 @@ function UpdatePopup({ staff, saving, formState, onChange, onSave, onClose, anch
 function UpdateButton({ record, isOpen, onOpen, onClose, onUpdated }) {
   const btnRef = useRef(null);
   const [staff,     setStaff]     = useState([]);
-  const [formState, setFormState] = useState({ status: record.Status, staffId: record.StaffID || "" });
+  const [formState, setFormState] = useState({ status: record.status, staffId: record.staffid || "" });
   const [saving,    setSaving]    = useState(false);
 
   // Load staff when popup opens
   useEffect(() => {
-    if (isOpen && record.HotelID) {
-      getStaff(record.HotelID).then((r) => setStaff(r.data)).catch(() => {});
+    if (isOpen && record.hotelid) {
+      getStaff(record.hotelid).then((r) => setStaff(r.data)).catch(() => {});
     }
-  }, [isOpen, record.HotelID]);
+  }, [isOpen, record.hotelid]);
 
   // Sync form to latest record values each time popup opens
   useEffect(() => {
-    if (isOpen) setFormState({ status: record.Status, staffId: record.StaffID || "" });
-  }, [isOpen, record.Status, record.StaffID]);
+    if (isOpen) setFormState({ status: record.status, staffId: record.staffid || "" });
+  }, [isOpen, record.status, record.staffid]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateMaintenance(record.MaintenanceID, { status: formState.status, staffId: formState.staffId || null });
+      await updateMaintenance(record.maintenanceid, { status: formState.status, staffId: formState.staffId || null });
       toast.success("Record updated");
       onClose();
       onUpdated();
@@ -256,7 +256,7 @@ function UpdateButton({ record, isOpen, onOpen, onClose, onUpdated }) {
     <>
       <button
         ref={btnRef}
-        onClick={() => isOpen ? onClose() : onOpen(record.MaintenanceID)}
+        onClick={() => isOpen ? onClose() : onOpen(record.maintenanceid)}
         className={`flex items-center gap-1 text-xs font-jost font-medium border rounded-lg px-3 py-1.5 transition-colors ${
           isOpen ? "bg-brand-700 text-white border-brand-700" : "text-brand-700 border-brand-200 hover:bg-brand-50"
         }`}
@@ -313,20 +313,20 @@ export default function AdminMaintenance() {
     }
   };
 
-  const pending    = records.filter((r) => r.Status === "Pending").length;
-  const inProgress = records.filter((r) => r.Status === "In Progress").length;
-  const resolved   = records.filter((r) => r.Status === "Resolved").length;
-  const hotelNames = [...new Set(records.map((r) => r.HotelName).filter(Boolean))];
+  const pending    = records.filter((r) => r.status === "Pending").length;
+  const inProgress = records.filter((r) => r.status === "In Progress").length;
+  const resolved   = records.filter((r) => r.status === "Resolved").length;
+  const hotelNames = [...new Set(records.map((r) => r.hotelname).filter(Boolean))];
 
   const filtered = records.filter((r) => {
-    const matchStatus = filterStatus === "All" || r.Status === filterStatus;
-    const matchHotel  = filterHotel  === "All" || r.HotelName === filterHotel;
+    const matchStatus = filterStatus === "All" || r.status === filterStatus;
+    const matchHotel  = filterHotel  === "All" || r.hotelname === filterHotel;
     const q = search.toLowerCase();
     const matchSearch = !q ||
-      r.RoomName?.toLowerCase().includes(q) ||
-      r.HotelName?.toLowerCase().includes(q) ||
-      r.Issue?.toLowerCase().includes(q) ||
-      r.StaffName?.toLowerCase().includes(q);
+      r.roomname?.toLowerCase().includes(q) ||
+      r.hotelname?.toLowerCase().includes(q) ||
+      r.issue?.toLowerCase().includes(q) ||
+      r.staffname?.toLowerCase().includes(q);
     return matchStatus && matchHotel && matchSearch;
   });
 
@@ -475,46 +475,46 @@ export default function AdminMaintenance() {
 </thead>
               <tbody className="divide-y divide-neutral-50">
                 {filtered.map((r) => (
-                  <tr key={r.MaintenanceID} className="hover:bg-neutral-50/70 transition-colors group">
-                    <td className="px-5 py-4 text-neutral-300 text-xs font-light">#{r.MaintenanceID}</td>
+                  <tr key={r.maintenanceid} className="hover:bg-neutral-50/70 transition-colors group">
+                    <td className="px-5 py-4 text-neutral-300 text-xs font-light">#{r.maintenanceid}</td>
 
                     <td className="px-5 py-4">
-                      <div className="font-medium text-neutral-800 whitespace-nowrap">{r.RoomName}</div>
+                      <div className="font-medium text-neutral-800 whitespace-nowrap">{r.roomname}</div>
                       <div className="text-xs text-neutral-400 mt-0.5 flex items-center gap-1">
-                        <Hotel size={10} />{r.HotelName}
+                        <Hotel size={10} />{r.hotelname}
                       </div>
                     </td>
 
                     <td className="px-5 py-4 max-w-xs">
-                      <p className="text-neutral-700 leading-relaxed line-clamp-2">{r.Issue}</p>
+                      <p className="text-neutral-700 leading-relaxed line-clamp-2">{r.issue}</p>
                     </td>
 
                     <td className="px-5 py-4 whitespace-nowrap">
-                      {r.StaffName ? (
+                      {r.staffname ? (
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-medium flex-shrink-0">
-                            {r.StaffName[0]}
+                            {r.staffname[0]}
                           </div>
-                          <span className="text-neutral-700 text-sm">{r.StaffName}</span>
+                          <span className="text-neutral-700 text-sm">{r.staffname}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-neutral-300 font-light italic">Unassigned</span>
                       )}
                     </td>
 
-                    <td className="px-5 py-4"><StatusBadge status={r.Status} /></td>
+                    <td className="px-5 py-4"><StatusBadge status={r.status} /></td>
 
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <UpdateButton
                           record={r}
-                          isOpen={openPopupId === r.MaintenanceID}
+                          isOpen={openPopupId === r.maintenanceid}
                           onOpen={(id) => setOpenPopupId(id)}
                           onClose={() => setOpenPopupId(null)}
                           onUpdated={fetchAll}
                         />
-                        {r.Status === "Resolved" && (
-                          <button onClick={() => handleDelete(r.MaintenanceID)}
+                        {r.status === "Resolved" && (
+                          <button onClick={() => handleDelete(r.maintenanceid)}
                             className="p-1.5 rounded-lg text-neutral-300 hover:text-red-500 hover:bg-red-50 transition-colors opacity-0 group-hover:opacity-100"
                             title="Delete record">
                             <Trash2 size={14} />

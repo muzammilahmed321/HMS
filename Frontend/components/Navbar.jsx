@@ -29,11 +29,11 @@ useEffect(() => {
 
           {user ? (
             <>
-              {user.roleId == 1 && (
+              {user.roleid == 1 && (
                 <Link href="/admin" className="text-neutral-600 hover:text-brand-700 transition-colors">Admin Panel</Link>
               ) }
               
-              {user.roleId == 2 && (
+              {user.roleid == 2 && (
                 <Link href="/customer/dashboard" className="text-neutral-600 hover:text-brand-700 transition-colors">My Bookings</Link>
               )}
               <div className="flex items-center gap-3 ml-2">
@@ -71,7 +71,7 @@ useEffect(() => {
           <Link href="/hotels" className="block text-neutral-600 hover:text-brand-700" onClick={() => setMenuOpen(false)}>Hotels</Link>
           {user ? (
             <>
-              {user.RoleId === 1
+              {user.roleid === 1
                 ? <Link href="/admin" className="block text-neutral-600 hover:text-brand-700" onClick={() => setMenuOpen(false)}>Admin Panel</Link>
                 : <Link href="/customer/dashboard" className="block text-neutral-600 hover:text-brand-700" onClick={() => setMenuOpen(false)}>My Bookings</Link>
               }

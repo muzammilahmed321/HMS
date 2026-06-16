@@ -57,22 +57,22 @@ function ReplyPanel({ review, onReplied }) {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
 
-  if (review.ResponseText) {
+  if (review.responsetext) {
     return (
       <div className="mt-4 bg-brand-50 border border-brand-100 rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2">
           <MessageSquareReply size={13} className="text-brand-600" />
           <span className="font-jost text-xs font-medium text-brand-700">Management Response</span>
-          {review.ResponseDate && (
+          {review.responsedate && (
             <span className="font-jost text-xs text-neutral-400 ml-auto">
-              {new Date(review.ResponseDate).toLocaleDateString()}
+              {new Date(review.responsedate).toLocaleDateString()}
             </span>
           )}
         </div>
         <p className="font-jost font-light text-sm text-neutral-600 leading-relaxed">
-          {review.ResponseText}
+          {review.responsetext}
         </p>
-        <p className="font-jost text-xs text-neutral-400 mt-2">— {review.AdminName || "Admin"}</p>
+        <p className="font-jost text-xs text-neutral-400 mt-2">— {review.adminname || "Admin"}</p>
       </div>
     );
   }
@@ -81,7 +81,7 @@ function ReplyPanel({ review, onReplied }) {
     if (!text.trim()) return toast.error("Reply cannot be empty");
     setSaving(true);
     try {
-      await respondToReview(review.ReviewID, { responseText: text.trim() });
+      await respondToReview(review.reviewid, { responseText: text.trim() });
       toast.success("Response posted");
       setOpen(false);
       setText("");
@@ -144,23 +144,23 @@ function ReplyPanel({ review, onReplied }) {
 
 function ReviewCard({ review, onReplied }) {
   const [expanded, setExpanded] = useState(false);
-  const hasLongComment = review.Comment?.length > 220;
+  const hasLongComment = review.comment?.length > 220;
   const displayComment = hasLongComment && !expanded
-    ? review.Comment.slice(0, 220) + "..."
-    : review.Comment;
+    ? review.comment.slice(0, 220) + "..."
+    : review.comment;
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6 hover:shadow-md transition-shadow duration-200">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 font-playfair text-base font-semibold flex-shrink-0">
-            {review.GuestName?.[0]?.toUpperCase() ?? "?"}
+            {review.guestname?.[0]?.toUpperCase() ?? "?"}
           </div>
           <div>
-            <div className="font-jost font-semibold text-sm text-neutral-800">{review.GuestName}</div>
+            <div className="font-jost font-semibold text-sm text-neutral-800">{review.guestname}</div>
             <div className="font-jost text-xs text-neutral-400 mt-0.5 flex items-center gap-1">
               <Hotel size={10} />
-              {review.HotelName}
+              {review.hotelname}
             </div>
           </div>
         </div>
@@ -169,7 +169,7 @@ function ReviewCard({ review, onReplied }) {
           {/* StarRow uses inline styles — always renders correctly */}
           <StarRow rating={review.Rating} size={15} />
           <span className="font-jost text-xs text-neutral-400">
-            {new Date(review.ReviewDate).toLocaleDateString("en-GB", {
+            {new Date(review.reviewdate).toLocaleDateString("en-GB", {
               day: "numeric", month: "short", year: "numeric",
             })}
           </span>
@@ -221,34 +221,34 @@ export default function AdminReviews() {
   useEffect(() => { fetchAll(); }, []);
 
   const avgRating = reviews.length
-    ? (reviews.reduce((s, r) => s + r.Rating, 0) / reviews.length).toFixed(1)
+    ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : "0";
 
   const ratingCounts = [5, 4, 3, 2, 1].map((star) => ({
     star,
-    count: reviews.filter((r) => r.Rating === star).length,
+    count: reviews.filter((r) => r.rating === star).length,
   }));
 
-  const repliedCount = reviews.filter((r) => !!r.ResponseText).length;
+  const repliedCount = reviews.filter((r) => !!r.responsetext).length;
   const pendingCount = reviews.length - repliedCount;
   const responseRate = reviews.length
     ? Math.round((repliedCount / reviews.length) * 100)
     : 0;
 
-  const hotelNames = [...new Set(reviews.map((r) => r.HotelName).filter(Boolean))];
+  const hotelNames = [...new Set(reviews.map((r) => r.hotelname).filter(Boolean))];
 
   const filtered = reviews.filter((r) => {
-    const matchRating = filterRating === 0 || r.Rating === filterRating;
-    const matchHotel = filterHotel === "All" || r.HotelName === filterHotel;
+    const matchRating = filterRating === 0 || r.rating === filterRating;
+    const matchHotel = filterHotel === "All" || r.hotelname === filterHotel;
     const matchReplied =
       filterReplied === "All" ||
-      (filterReplied === "Replied" && !!r.ResponseText) ||
-      (filterReplied === "Pending" && !r.ResponseText);
+      (filterReplied === "Replied" && !!r.responsetext) ||
+      (filterReplied === "Pending" && !r.responsetext);
     const q = search.toLowerCase();
     const matchSearch = !q ||
-      r.GuestName?.toLowerCase().includes(q) ||
-      r.Comment?.toLowerCase().includes(q) ||
-      r.HotelName?.toLowerCase().includes(q);
+      r.guestname?.toLowerCase().includes(q) ||
+      r.comment?.toLowerCase().includes(q) ||
+      r.hotelname?.toLowerCase().includes(q);
     return matchRating && matchHotel && matchReplied && matchSearch;
   });
 
@@ -421,7 +421,7 @@ export default function AdminReviews() {
       ) : (
         <div className="flex flex-col gap-4">
           {filtered.map((review) => (
-            <ReviewCard key={review.ReviewID} review={review} onReplied={fetchAll} />
+            <ReviewCard key={review.reviewid} review={review} onReplied={fetchAll} />
           ))}
         </div>
       )}

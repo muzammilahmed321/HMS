@@ -24,7 +24,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
   const submit = async () => {
     setLoading(true);
     try {
-      await createReview(booking.HotelID, { rating, comment });
+      await createReview(booking.hotelid, { rating, comment });
       toast.success("Review submitted!");
       onSubmit();
       onClose();
@@ -39,7 +39,7 @@ function ReviewModal({ booking, onClose, onSubmit }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
       <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <h3 className="font-playfair text-2xl mb-1">Leave a Review</h3>
-        <p className="font-jost font-light text-neutral-500 text-sm mb-5">{booking.HotelName}</p>
+        <p className="font-jost font-light text-neutral-500 text-sm mb-5">{booking.hotelname}</p>
 
         <div className="flex gap-2 mb-5">
           {[1,2,3,4,5].map((n) => (
@@ -116,26 +116,26 @@ export default function CustomerDashboard() {
         ) : (
           <div className="space-y-4">
             {bookings.map((b) => (
-              <div key={b.BookingID} className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
+              <div key={b.bookingid} className="bg-white rounded-2xl border border-neutral-100 p-6 shadow-sm">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-playfair text-xl">{b.HotelName}</h3>
-                      <StatusBadge status={b.Status} />
+                      <h3 className="font-playfair text-xl">{b.hotelname}</h3>
+                      <StatusBadge status={b.status} />
                     </div>
                     <div className="flex flex-wrap gap-4 font-jost font-light text-xs text-neutral-500 mb-3">
-                      <span className="flex items-center gap-1"><MapPin size={12} />{b.Location}</span>
-                      <span className="flex items-center gap-1"><Calendar size={12} />{new Date(b.CheckIn).toLocaleDateString()} – {new Date(b.CheckOut).toLocaleDateString()}</span>
-                      <span>Rooms: {b.Rooms}</span>
+                      <span className="flex items-center gap-1"><MapPin size={12} />{b.location}</span>
+                      <span className="flex items-center gap-1"><Calendar size={12} />{new Date(b.checkin).toLocaleDateString()} – {new Date(b.checkout).toLocaleDateString()}</span>
+                      <br /><span>Rooms: {b.rooms}</span>
                     </div>
                     <div className="font-playfair text-2xl text-brand-700">
-                      ${parseFloat(b.GrandTotal).toFixed(2)}
-                    </div>
+                      ${parseFloat(b.grandtotal).toFixed(2)}
+                    </div>  
                   </div>
                   <div className="flex flex-col gap-2 items-end">
-                    <span className="font-jost text-xs text-neutral-400">Booking #{b.BookingID}</span>
-                    <span className="font-jost text-xs text-neutral-400">{new Date(b.BookingDate).toLocaleDateString()}</span>
-                    {b.Status === "Completed" && (
+                    <span className="font-jost text-xs text-neutral-400">Booking #{b.bookingid}</span>
+                    <span className="font-jost text-xs text-neutral-400">{new Date(b.bookingdate).toLocaleDateString()}</span>
+                    {b.status === "Completed" && (
                       <button onClick={() => setReviewBooking(b)} className="text-xs font-jost font-medium text-brand-700 border border-brand-200 rounded-full px-3 py-1 hover:bg-brand-50 transition-colors flex items-center gap-1">
                         <Star size={12} /> Leave Review
                       </button>

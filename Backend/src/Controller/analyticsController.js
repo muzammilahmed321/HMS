@@ -1,5 +1,4 @@
 import { getPool } from "../config/db.js";
-import sql from "mssql";
 
 // GET /api/analytics/revenue
 // Returns earned revenue for the last 5 months (non-cancelled bookings)
@@ -7,20 +6,19 @@ export const getRevenueByMonth = async (req, res) => {
   try {
     const pool = await getPool();
 
-    const result = await pool.request().query(`
-      SELECT
-        YEAR(BookingDate)  AS yr,
-        MONTH(BookingDate) AS mo,
-        SUM(GrandTotal)    AS revenue
-      FROM Booking
-      WHERE
-        Status != 'Cancelled'
-        AND BookingDate >= DATEADD(MONTH, -4, DATEFROMPARTS(YEAR(GETDATE()), MONTH(GETDATE()), 1))
-      GROUP BY
-        YEAR(BookingDate),
-        MONTH(BookingDate)
-      ORDER BY yr ASC, mo ASC
-    `);
+    const result = await pool.query(`
+  SELECT
+    EXTRACT(YEAR FROM bookingdate) AS yr,
+    EXTRACT(MONTH FROM bookingdate) AS mo,
+    SUM(grandtotal) AS revenue
+  FROM booking
+  WHERE status <> 'Cancelled'
+    AND bookingdate >= date_trunc('month', CURRENT_DATE) - interval '4 months'
+  GROUP BY
+    EXTRACT(YEAR FROM bookingdate),
+    EXTRACT(MONTH FROM bookingdate)
+  ORDER BY yr, mo
+`);
 
     // Build a guaranteed 5-slot array (current month + 4 before it)
     // so the chart always shows 5 bars even if some months have zero bookings
@@ -34,7 +32,9 @@ export const getRevenueByMonth = async (req, res) => {
 
       const label = d.toLocaleString("en-GB", { month: "short", year: "numeric" });
 
-      const row = result.recordset.find((r) => r.yr === yr && r.mo === mo);
+      const row = result.rows.find(
+        (r) => parseInt(r.yr) === yr && parseInt(r.mo) === mo
+      );
       months.push({
         month: label,
         revenue: row ? parseFloat(row.revenue).toFixed(2) : "0.00",
@@ -54,21 +54,21 @@ export const getBookingStatusCurrentMonth = async (req, res) => {
   try {
     const pool = await getPool();
 
-    const result = await pool.request().query(`
+    const result = await pool.query(`
       SELECT
-        Status,
+        status,
         COUNT(*) AS count
-      FROM Booking
+      FROM booking
       WHERE
-        YEAR(BookingDate)  = YEAR(GETDATE())
-        AND MONTH(BookingDate) = MONTH(GETDATE())
-      GROUP BY Status
+        EXTRACT(YEAR FROM bookingdate) = EXTRACT(YEAR FROM CURRENT_DATE)
+        AND EXTRACT(MONTH FROM bookingdate) = EXTRACT(MONTH FROM CURRENT_DATE)
+      GROUP BY status
     `);
 
     // Ensure all three statuses are always present (zero if no data)
     const statuses = ["Confirmed", "Completed", "Cancelled"];
     const data = statuses.map((status) => {
-      const row = result.recordset.find((r) => r.Status === status);
+      const row = result.rows.find((r) => r.status === status);
       return { status, count: row ? parseInt(row.count) : 0 };
     });
 

@@ -1,117 +1,3 @@
-// import { getPool } from "../config/db.js";
-// import sql from "mssql";
-// // GET /api/hotels
-// export const getAllHotels = async (req, res) => {
-//   try {
-//     const pool = await getPool();
-//     const result = await pool.request().query(`
-//       SELECT h.*, 
-//         (SELECT TOP 1 HotelPic FROM HotelPics WHERE HotelID = h.HotelID) AS MainImage
-//       FROM Hotel h
-//       ORDER BY h.HotelID
-//     `);
-//     res.json(result.recordset);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// // GET /api/hotels/:id
-// export const getHotelById = async (req, res) => {
-//   try {
-//     const pool = await getPool();
-//     const hotel = await pool
-//       .request()
-//       .input("id", sql.Int, req.params.id)
-//       .query("SELECT * FROM Hotel WHERE HotelID = @id");
-
-//     if (hotel.recordset.length === 0) return res.status(404).json({ message: "Hotel not found" });
-
-//     const pics = await pool
-//       .request()
-//       .input("id", sql.Int, req.params.id)
-//       .query("SELECT * FROM HotelPics WHERE HotelID = @id");
-
-//     res.json({ ...hotel.recordset[0], images: pics.recordset });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// // POST /api/hotels
-// export const createHotel = async (req, res) => {
-//   const { name, location, checkinTime, checkoutTime, images = [] } = req.body;
-//   if (!name || !location) return res.status(400).json({ message: "Name and location required" });
-
-//   try {
-//     const pool = await getPool();
-//     const idRes = await pool.request().query("SELECT ISNULL(MAX(HotelID),0)+1 AS NextID FROM Hotel");
-//     const newId = idRes.recordset[0].NextID;
-
-//     await pool
-//       .request()
-//       .input("HotelID", sql.Int, newId)
-//       .input("Name", sql.VarChar, name)
-//       .input("Location", sql.VarChar, location)
-//       .input("CheckinTime", sql.VarChar, checkinTime || "14:00")
-//       .input("CheckoutTime", sql.VarChar, checkoutTime || "11:00")
-//       .query("INSERT INTO Hotel (HotelID, Name, Location, CheckinTime, CheckoutTime) VALUES (@HotelID, @Name, @Location, @CheckinTime, @CheckoutTime)");
-
-//     // Insert images
-//     for (let i = 0; i < images.length; i++) {
-//       const picIdRes = await pool.request().query("SELECT ISNULL(MAX(HotelPicsID),0)+1 AS NextID FROM HotelPics");
-//       await pool
-//         .request()
-//         .input("HotelPicsID", sql.Int, picIdRes.recordset[0].NextID)
-//         .input("HotelID", sql.Int, newId)
-//         .input("HotelPic", sql.VarChar(sql.MAX), images[i])
-//         .query("INSERT INTO HotelPics (HotelPicsID, HotelID, HotelPic) VALUES (@HotelPicsID, @HotelID, @HotelPic)");
-//     }
-
-//     res.status(201).json({ message: "Hotel created", hotelId: newId });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// // PUT /api/hotels/:id
-// export const updateHotel = async (req, res) => {
-//   const { name, location, checkinTime, checkoutTime } = req.body;
-//   try {
-//     const pool = await getPool();
-//     await pool
-//       .request()
-//       .input("id", sql.Int, req.params.id)
-//       .input("Name", sql.VarChar, name)
-//       .input("Location", sql.VarChar, location)
-//       .input("CheckinTime", sql.VarChar, checkinTime)
-//       .input("CheckoutTime", sql.VarChar, checkoutTime)
-//       .query("UPDATE Hotel SET Name=@Name, Location=@Location, CheckinTime=@CheckinTime, CheckoutTime=@CheckoutTime WHERE HotelID=@id");
-
-//     res.json({ message: "Hotel updated" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-// // DELETE /api/hotels/:id
-// export const deleteHotel = async (req, res) => {
-//   try {
-//     const pool = await getPool();
-//     await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM HotelPics WHERE HotelID=@id");
-//     await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM Hotel WHERE HotelID=@id");
-//     res.json({ message: "Hotel deleted" });
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-
-
-
-
-
-
 import { getPool } from "../config/db.js";
 import sql from "mssql";
 import cloudinary from "cloudinary";
@@ -137,13 +23,13 @@ cloudinary.config({
 export const getAllHotels = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT h.*, 
-        (SELECT TOP 1 HotelPic FROM HotelPics WHERE HotelID = h.HotelID) AS MainImage
-      FROM Hotel h
-      ORDER BY h.HotelID
-    `);
-    res.json(result.recordset);
+    const result = await pool.query(`
+  SELECT h.*,
+    (SELECT "hotelpic" FROM "hotelpics" WHERE "hotelid" = h."hotelid" LIMIT 1) AS "mainimage"
+  FROM "hotel" h
+  ORDER BY h."hotelid"
+`);
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -153,19 +39,12 @@ export const getAllHotels = async (req, res) => {
 export const getHotelById = async (req, res) => {
   try {
     const pool = await getPool();
-    const hotel = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query("SELECT * FROM Hotel WHERE HotelID = @id");
+    const hotel = await pool.query('SELECT * FROM "hotel" WHERE "hotelid" = $1', [req.params.id]);
+    if (hotel.rows.length === 0) return res.status(404).json({ message: "Hotel not found" });
 
-    if (hotel.recordset.length === 0) return res.status(404).json({ message: "Hotel not found" });
+    const pics = await pool.query('SELECT * FROM "hotelpics" WHERE "hotelid" = $1', [req.params.id]);
+    res.json({ ...hotel.rows[0], images: pics.rows });
 
-    const pics = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query("SELECT * FROM HotelPics WHERE HotelID = @id");
-
-    res.json({ ...hotel.recordset[0], images: pics.recordset });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -178,31 +57,31 @@ export const createHotel = async (req, res) => {
 
   try {
     const pool = await getPool();
-    const idRes = await pool.request().query("SELECT ISNULL(MAX(HotelID),0)+1 AS NextID FROM Hotel");
-    const newId = idRes.recordset[0].NextID;
+    // const newId = idRes.rows[0].NextID;
 
-    await pool
-      .request()
-      .input("HotelID", sql.Int, newId)
-      .input("Name", sql.VarChar, name)
-      .input("Location", sql.VarChar, location)
-      .input("CheckinTime", sql.VarChar, checkinTime || "14:00")
-      .input("CheckoutTime", sql.VarChar, checkoutTime || "11:00")
-      .query("INSERT INTO Hotel (HotelID, Name, Location, CheckinTime, CheckoutTime) VALUES (@HotelID, @Name, @Location, @CheckinTime, @CheckoutTime)");
 
-    // Insert images
+
+    const result = await pool.query(
+  `INSERT INTO hotel(name, location, checkintime, checkouttime)
+   VALUES($1,$2,$3,$4)
+   RETURNING hotelid`,
+  [name, location, checkinTime || "14:00", checkoutTime || "11:00"]
+);
+
+const newId = result.rows[0].hotelid;
+  
+
     for (let i = 0; i < images.length; i++) {
-      const picIdRes = await pool.request().query("SELECT ISNULL(MAX(HotelPicsID),0)+1 AS NextID FROM HotelPics");
-      await pool
-        .request()
-        .input("HotelPicsID", sql.Int, picIdRes.recordset[0].NextID)
-        .input("HotelID", sql.Int, newId)
-        .input("HotelPic", sql.VarChar(sql.MAX), images[i])
-        .query("INSERT INTO HotelPics (HotelPicsID, HotelID, HotelPic) VALUES (@HotelPicsID, @HotelID, @HotelPic)");
+      const picIdRes = await pool.query('SELECT COALESCE(MAX("hotelpicsid"),0)+1 AS "nextid" FROM "hotelpics"');
+      await pool.query(
+        'INSERT INTO "hotelpics" ("hotelpicsid","hotelid","hotelpic") VALUES ($1,$2,$3)',
+        [picIdRes.rows[0].nextid, newId, images[i]]
+      );
     }
 
     res.status(201).json({ message: "Hotel created", hotelId: newId });
   } catch (err) {
+    console.error("Create error:", err.message);
     res.status(500).json({ message: err.message });
   }
 };
@@ -212,15 +91,10 @@ export const updateHotel = async (req, res) => {
   const { name, location, checkinTime, checkoutTime } = req.body;
   try {
     const pool = await getPool();
-    await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .input("Name", sql.VarChar, name)
-      .input("Location", sql.VarChar, location)
-      .input("CheckinTime", sql.VarChar, checkinTime)
-      .input("CheckoutTime", sql.VarChar, checkoutTime)
-      .query("UPDATE Hotel SET Name=@Name, Location=@Location, CheckinTime=@CheckinTime, CheckoutTime=@CheckoutTime WHERE HotelID=@id");
-
+    await pool.query(
+      'UPDATE "hotel" SET "name"=$1, "location"=$2, "checkintime"=$3, "checkouttime"=$4 WHERE "hotelid"=$5',
+      [name, location, checkinTime, checkoutTime, req.params.id]
+    );
     res.json({ message: "Hotel updated" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -231,10 +105,11 @@ export const updateHotel = async (req, res) => {
 export const deleteHotel = async (req, res) => {
   try {
     const pool = await getPool();
-    await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM HotelPics WHERE HotelID=@id");
-    await pool.request().input("id", sql.Int, req.params.id).query("DELETE FROM Hotel WHERE HotelID=@id");
+    await pool.query('DELETE FROM "hotel" WHERE "hotelid"=$1', [req.params.id]);
+    await pool.query('DELETE FROM "hotelpics" WHERE "hotelid"=$1', [req.params.id]);
     res.json({ message: "Hotel deleted" });
   } catch (err) {
+    console.error("Delete error:", err);
     res.status(500).json({ message: err.message });
   }
 };
@@ -275,20 +150,13 @@ export const uploadHotelPicture = async (req, res) => {
 
     // Save Cloudinary URL + public_id to DB
     const pool = await getPool();
-    const idRes = await pool
-      .request()
-      .query("SELECT ISNULL(MAX(HotelPicsID),0)+1 AS NextID FROM HotelPics");
-    const newId = idRes.recordset[0].NextID;
+    const idRes = await pool.query('SELECT COALESCE(MAX("hotelpicsid"),0)+1 AS "nextid" FROM "hotelpics"');
+    const newId = idRes.rows[0].NextID;
 
-    await pool
-      .request()
-      .input("HotelPicsID", sql.Int, newId)
-      .input("HotelID", sql.Int, hotelId)
-      // Store full Cloudinary URL — public_id appended after | for deletion later
-      .input("HotelPic", sql.VarChar(sql.MAX), `${result.secure_url}|${result.public_id}`)
-      .query(
-        "INSERT INTO HotelPics (HotelPicsID, HotelID, HotelPic) VALUES (@HotelPicsID, @HotelID, @HotelPic)"
-      );
+    await pool.query(
+      'INSERT INTO "hotelpics" ("hotelpicsid","hotelid","hotelpic") VALUES ($1,$2,$3)',
+      [newId, hotelId, `${result.secure_url}|${result.public_id}`]
+    );
 
     res.status(201).json({
       message: "Image uploaded",
@@ -309,15 +177,11 @@ export const deleteHotelPicture = async (req, res) => {
     const pool = await getPool();
 
     // Get the pic record first to extract Cloudinary public_id
-    const picRes = await pool
-      .request()
-      .input("id", sql.Int, picId)
-      .query("SELECT HotelPic FROM HotelPics WHERE HotelPicsID = @id");
+    const picRes = await pool.query('SELECT "hotelpic" FROM "hotelpics" WHERE "hotelpicsid" = $1', [picId]);
+    if (picRes.rows.length === 0) return res.status(404).json({ message: "Picture not found" });
 
-    if (picRes.recordset.length === 0)
-      return res.status(404).json({ message: "Picture not found" });
-
-    const picValue = picRes.recordset[0].HotelPic;
+    const picValue = picRes.rows[0].HotelPic;
+    // ... cloudinary destroy logic unchanged ...
 
     // Extract public_id if stored as "url|public_id"
     if (picValue && picValue.includes("|")) {
@@ -326,10 +190,7 @@ export const deleteHotelPicture = async (req, res) => {
     }
 
     // Delete from DB
-    await pool
-      .request()
-      .input("id", sql.Int, picId)
-      .query("DELETE FROM HotelPics WHERE HotelPicsID = @id");
+    await pool.query('DELETE FROM "hotelpics" WHERE "hotelpicsid" = $1', [picId]);
 
     res.json({ message: "Picture deleted" });
   } catch (err) {
@@ -342,20 +203,17 @@ export const deleteHotelPicture = async (req, res) => {
 export const getHotelPictures = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("id", sql.Int, req.params.hotelId)
-      .query("SELECT HotelPicsID, HotelPic FROM HotelPics WHERE HotelID = @id ORDER BY HotelPicsID");
+    const result = await pool.query(
+      'SELECT "hotelpicsid","hotelpic" FROM "hotelpics" WHERE "hotelid" = $1 ORDER BY "hotelpicsid"',
+      [req.params.hotelId]
+    );
 
-    // Parse url from "url|public_id" format
-    const pics = result.recordset.map((p) => ({
-      HotelPicsID: p.HotelPicsID,
+    const pics = result.rows.map((p) => ({
+      hotelpicsid: p.HotelPicsID,
       url: p.HotelPic?.includes("|") ? p.HotelPic.split("|")[0] : p.HotelPic,
     }));
-
     res.json(pics);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
-

@@ -22,7 +22,7 @@ export default function AdminDepartments() {
   const [showStaffForm, setShowStaffForm] = useState(false);
 
   const fetchDepts = () => getDepartments().then((r) => setDepts(r.data)).catch(() => {});
-  const fetchHotels = () => getHotels().then((r) => { setHotels(r.data); if (r.data.length) setSelectedHotel(r.data[0].HotelID); }).catch(() => {});
+  const fetchHotels = () => getHotels().then((r) => { setHotels(r.data); if (r.data.length) setSelectedHotel(r.data[0].hotelid); }).catch(() => {});
   const fetchStaff = (hotelId) => { if (hotelId) getStaff(hotelId).then((r) => setStaff(r.data)).catch(() => {}); };
 
   useEffect(() => { fetchDepts(); fetchHotels(); }, []);
@@ -85,14 +85,14 @@ export default function AdminDepartments() {
 
           <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm divide-y divide-neutral-50">
             {depts.map((d) => (
-              <div key={d.DeptID} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group">
+              <div key={d.deptid} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group">
                 <div className="flex items-center gap-2">
                   <Building2 size={14} className="text-neutral-300" />
-                  <span className="font-jost font-medium text-sm">{d.DeptName}</span>
+                  <span className="font-jost font-medium text-sm">{d.deptname}</span>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setDeptForm({ name: d.DeptName, editId: d.DeptID }); setShowDeptForm(true); }} className="p-1.5 rounded text-neutral-400 hover:text-brand-700 hover:bg-brand-50 transition-colors"><Edit2 size={13} /></button>
-                  <button onClick={() => delDept(d.DeptID)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
+                  <button onClick={() => { setDeptForm({ name: d.deptname, editId: d.deptid }); setShowDeptForm(true); }} className="p-1.5 rounded text-neutral-400 hover:text-brand-700 hover:bg-brand-50 transition-colors"><Edit2 size={13} /></button>
+                  <button onClick={() => delDept(d.deptid)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
                 </div>
               </div>
             ))}
@@ -111,7 +111,7 @@ export default function AdminDepartments() {
 
           {/* Hotel Selector */}
           <select className={`${INPUT} mb-4`} value={selectedHotel} onChange={(e) => setSelectedHotel(e.target.value)}>
-            {hotels.map((h) => <option key={h.HotelID} value={h.HotelID}>{h.Name}</option>)}
+            {hotels.map((h) => <option key={h.hotelid} value={h.hotelid}>{h.name}</option>)}
           </select>
 
           {showStaffForm && (
@@ -120,7 +120,7 @@ export default function AdminDepartments() {
               <input className={INPUT} value={staffForm.role} onChange={(e) => setStaffForm({ ...staffForm, role: e.target.value })} placeholder="Role (e.g. Receptionist, Cleaner)" />
               <select className={INPUT} value={staffForm.deptId} onChange={(e) => setStaffForm({ ...staffForm, deptId: e.target.value })}>
                 <option value="">No Department</option>
-                {depts.map((d) => <option key={d.DeptID} value={d.DeptID}>{d.DeptName}</option>)}
+                {depts.map((d) => <option key={d.deptid} value={d.deptid}>{d.deptname}</option>)}
               </select>
               <div className="flex gap-2">
                 <button onClick={saveStaff} className="text-xs bg-brand-700 text-white px-4 py-2 rounded-lg font-jost font-medium hover:bg-brand-800">Save</button>
@@ -131,17 +131,17 @@ export default function AdminDepartments() {
 
           <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm divide-y divide-neutral-50">
             {staff.map((s) => (
-              <div key={s.StaffID} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group">
+              <div key={s.staffid} className="flex items-center justify-between px-4 py-3 hover:bg-neutral-50 transition-colors group">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-medium">{s.Name[0]}</div>
+                  <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-700 text-xs font-medium">{s.name[0]}</div>
                   <div>
-                    <div className="font-jost font-medium text-sm">{s.Name}</div>
-                    <div className="font-jost text-xs text-neutral-400">{s.Role} {s.DeptName ? `· ${s.DeptName}` : ""}</div>
+                    <div className="font-jost font-medium text-sm">{s.name}</div>
+                    <div className="font-jost text-xs text-neutral-400">{s.role} {s.deptname ? `· ${s.deptname}` : ""}</div>
                   </div>
                 </div>
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => { setStaffForm({ name: s.Name, role: s.Role, deptId: s.DeptID || "", editId: s.StaffID }); setShowStaffForm(true); }} className="p-1.5 rounded text-neutral-400 hover:text-brand-700 hover:bg-brand-50 transition-colors"><Edit2 size={13} /></button>
-                  <button onClick={() => delStaff(s.StaffID)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
+                  <button onClick={() => { setStaffForm({ name: s.name, role: s.role, deptId: s.deptid || "", editId: s.staffid }); setShowStaffForm(true); }} className="p-1.5 rounded text-neutral-400 hover:text-brand-700 hover:bg-brand-50 transition-colors"><Edit2 size={13} /></button>
+                  <button onClick={() => delStaff(s.staffid)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors"><Trash2 size={13} /></button>
                 </div>
               </div>
             ))}

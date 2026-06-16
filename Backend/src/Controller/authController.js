@@ -1,8 +1,8 @@
 import bcrypt from "bcryptjs";
-import jwt  from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 
 
-import { sql, getPool } from "../config/db.js";
+import { getPool } from "../config/db.js";
 
 // await getPool(); // MUST be called before queries
 // const pool = await sql.connect();
@@ -20,34 +20,24 @@ export const signup = async (req, res) => {
   try {
     const pool = await getPool();
 
-    // Check duplicate email
-    const existing = await pool
-      .request()
-      .input("email", sql.VarChar, email)
-      .query("SELECT UserID FROM Users WHERE Email = @email");
-
-    if (existing.recordset.length > 0) {
+    const existing = await pool.query(
+      'SELECT "userid" FROM "users" WHERE "email" = $1',
+      [email]
+    );
+    if (existing.rows.length > 0) {
       return res.status(409).json({ message: "Email already registered" });
     }
 
     const hashed = await bcrypt.hash(password, 10);
+    
+const result = await pool.query(
+  `INSERT INTO "users" ("name", "email", "phone", "password", "roleid")
+   VALUES ($1, $2, $3, $4, $5)
+   RETURNING "userid"`,
+  [name, email, phone || null, hashed, roleId]
+);
 
-    // Get next UserID
-    const idResult = await pool.request().query("SELECT ISNULL(MAX(UserID),0)+1 AS NextID FROM Users");
-    const newId = idResult.recordset[0].NextID;
-
-    await pool
-      .request()
-      .input("UserID", sql.Int, newId)
-      .input("Name", sql.VarChar, name)
-      .input("Email", sql.VarChar, email)
-      .input("Phone", sql.VarChar, phone || null)
-      .input("Password", sql.VarChar, hashed)
-      .input("RoleID", sql.Int, roleId)
-      .query(
-        "INSERT INTO Users (UserID, Name, Email, Phone, Password, RoleID) VALUES (@UserID, @Name, @Email, @Phone, @Password, @RoleID)"
-      );
-
+const newId = result.rows[0].userid;
     res.status(201).json({ message: "Account created successfully" });
   } catch (err) {
     console.error(err);
@@ -64,28 +54,26 @@ export const login = async (req, res) => {
 
   try {
     const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("email", sql.VarChar, email)
-      .query(`
-        SELECT u.UserID, u.Name, u.Email, u.Phone, u.Password, r.RoleID, r.RoleName
-        FROM Users u
-        JOIN Role r ON u.RoleID = r.RoleID
-        WHERE u.Email = @email
-      `);
+    const result = await pool.query(
+      `SELECT u."userid", u."name", u."email", u."phone", u."password", r."roleid", r."rolename"
+   FROM "users" u
+   JOIN "role" r ON u."roleid" = r."roleid"
+   WHERE u."email" = $1`,
+      [email]
+    );
 
-    if (result.recordset.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const user = result.recordset[0];
-    const match = await bcrypt.compare(password, user.Password);
+    const user = result.rows[0];
+    const match = await bcrypt.compare(password, user.password);
     if (!match) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
     const token = jwt.sign(
-      { userId: user.UserID, name: user.Name, email: user.Email, roleName: user.RoleName, roleId: user.RoleID },
+      { userId: user.userid, name: user.name, email: user.email, roleName: user.rolename, roleId: user.roleid },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -93,11 +81,11 @@ export const login = async (req, res) => {
     res.json({
       token,
       user: {
-        id: user.UserID,
-        name: user.Name,
-        email: user.Email,
-        phone: user.Phone,
-        role: user.RoleName,
+        id: user.userid,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.rolename,
       },
     });
   } catch (err) {
@@ -110,4 +98,3 @@ export const login = async (req, res) => {
 export const me = async (req, res) => {
   res.json({ user: req.user });
 };
-

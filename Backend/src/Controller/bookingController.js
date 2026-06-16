@@ -1,5 +1,5 @@
 import { getPool } from "../config/db.js";
-import sql from "mssql";
+
 import { sendBookingNotification } from "../../emailservice.js";
 
 // POST /api/bookings - Customer creates booking
@@ -10,20 +10,17 @@ export const createBooking = async (req, res) => {
   if (!hotelId || !checkIn || !checkOut || !roomIds || roomIds.length === 0) {
     return res.status(400).json({ message: "Missing required booking fields" });
   }
-console.log('hi');
+  console.log('hi');
 
   try {
     const pool = await getPool();
 
-    // 1. Get room details (name + price) — parameterized
-    const roomList = roomIds.map((_, i) => `@rid${i}`).join(",");
-    const roomReq = pool.request();
-    roomIds.forEach((id, i) => roomReq.input(`rid${i}`, sql.Int, id));
-    const roomsResult = await roomReq.query(
-      `SELECT RoomID, RoomName, Price FROM Room WHERE RoomID IN (${roomList})`
+    const roomPlaceholders = roomIds.map((_, i) => `$${i + 1}`).join(",");
+    const roomsResult = await pool.query(
+      `SELECT "roomid", "roomname", "price" FROM "room" WHERE "roomid" IN (${roomPlaceholders})`,
+      roomIds
     );
-    const rooms = roomsResult.recordset;
-
+    const rooms = roomsResult.rows;
     // 2. Calculate pricing
     const nights = Math.ceil(
       (new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)
@@ -31,59 +28,47 @@ console.log('hi');
     if (nights <= 0)
       return res.status(400).json({ message: "Invalid date range" });
 
-    const baseTotal = rooms.reduce((sum, r) => sum + parseFloat(r.Price), 0);
+    const baseTotal = rooms.reduce((sum, r) => sum + parseFloat(r.price), 0);
     const extraAdults = Math.max(0, (adults || 1) - 2);
     const grandTotal = baseTotal * nights + extraAdults * 20 * nights;
 
     // 3. Create booking record
-    const idRes = await pool
-      .request()
-      .query("SELECT ISNULL(MAX(BookingID),0)+1 AS NextID FROM Booking");
-    const bookingId = idRes.recordset[0].NextID;
+    const result = await pool.query(
+      `INSERT INTO "booking"
+   ("userid","hotelid","bookingdate","checkin","checkout","grandtotal","status")
+   VALUES ($1,$2,$3,$4,$5,$6,$7)
+   RETURNING "bookingid"`,
+      [
+        userId,
+        hotelId,
+        new Date(),
+        checkIn,
+        checkOut,
+        grandTotal,
+        "Confirmed"
+      ]
+    );
 
-    await pool
-      .request()
-      .input("BookingID", sql.Int, bookingId)
-      .input("UserID", sql.Int, userId)
-      .input("HotelID", sql.Int, hotelId)
-      .input("BookingDate", sql.Date, new Date())
-      .input("CheckIn", sql.Date, checkIn)
-      .input("CheckOut", sql.Date, checkOut)
-      .input("GrandTotal", sql.Decimal(10, 2), grandTotal)
-      .input("Status", sql.VarChar, "Confirmed")
-      .query(`
-        INSERT INTO Booking (BookingID, UserID, HotelID, BookingDate, CheckIn, CheckOut, GrandTotal, Status)
-        VALUES (@BookingID, @UserID, @HotelID, @BookingDate, @CheckIn, @CheckOut, @GrandTotal, @Status)
-      `);
-
+    const bookingId = result.rows[0].bookingid;
     // 4. Link rooms and mark occupied
     for (const roomId of roomIds) {
-      await pool
-        .request()
-        .input("BookingID", sql.Int, bookingId)
-        .input("RoomID", sql.Int, roomId)
-        .query("INSERT INTO Booking_Room (BookingID, RoomID) VALUES (@BookingID, @RoomID)");
-
-      await pool
-        .request()
-        .input("RoomID", sql.Int, roomId)
-        .query("UPDATE Room SET Status='Occupied' WHERE RoomID=@RoomID");
+      await pool.query(
+        'INSERT INTO "booking_room" ("bookingid","roomid") VALUES ($1,$2)',
+        [bookingId, roomId]
+      );
+      await pool.query(`UPDATE "room" SET "status"='Occupied' WHERE "roomid"=$1`, [roomId]);
     }
 
     // 5. Fetch hotel, guest, and all admin emails for notification
     const [hotelRes, guestRes, adminRes] = await Promise.all([
-      pool.request().input("hid", sql.Int, hotelId)
-        .query("SELECT Name, Location FROM Hotel WHERE HotelID = @hid"),
-      pool.request().input("uid", sql.Int, userId)
-        .query("SELECT Name, Email, Phone FROM Users WHERE UserID = @uid"),
-      pool.request()
-        .query("SELECT Email FROM Users WHERE RoleID = 1"),
+      pool.query('SELECT "name","location" FROM "hotel" WHERE "hotelid" = $1', [hotelId]),
+      pool.query('SELECT "name","email","phone" FROM "users" WHERE "userid" = $1', [userId]),
+      pool.query('SELECT "email" FROM "users" WHERE "roleid" = 1'),
     ]);
 
-    const hotel = hotelRes.recordset[0];
-    const guest = guestRes.recordset[0];
-    const adminEmails = adminRes.recordset.map((a) => a.Email).filter(Boolean);
-
+    const hotel = hotelRes.rows[0];
+    const guest = guestRes.rows[0];
+    const adminEmails = adminRes.rows.map((a) => a.Email).filter(Boolean);
     // 6. Send email non-blocking
     sendBookingNotification({
       adminEmails,
@@ -107,6 +92,7 @@ console.log('hi');
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: err.message });
+    console.log(err.message);
   }
 };
 
@@ -114,18 +100,16 @@ console.log('hi');
 export const getMyBookings = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("userId", sql.Int, req.user.userId)
-      .query(`
-        SELECT b.*, h.Name AS HotelName, h.Location,
-          (SELECT STRING_AGG(r.RoomName, ', ') FROM Booking_Room br JOIN Room r ON br.RoomID = r.RoomID WHERE br.BookingID = b.BookingID) AS Rooms
-        FROM Booking b
-        JOIN Hotel h ON b.HotelID = h.HotelID
-        WHERE b.UserID = @userId
-        ORDER BY b.BookingDate DESC
-      `);
-    res.json(result.recordset);
+    const result = await pool.query(
+      `SELECT b.*, h."name" AS "hotelname", h."location",
+    (SELECT STRING_AGG(r."roomname", ', ') FROM "booking_room" br JOIN "room" r ON br."roomid" = r."roomid" WHERE br."bookingid" = b."bookingid") AS "rooms"
+   FROM "booking" b
+   JOIN "hotel" h ON b."hotelid" = h."hotelid"
+   WHERE b."userid" = $1
+   ORDER BY b."bookingdate" DESC`,
+      [req.user.userId]
+    );
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -135,15 +119,15 @@ export const getMyBookings = async (req, res) => {
 export const getAllBookings = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool.request().query(`
-      SELECT b.*, h.Name AS HotelName, h.Location, u.Name AS GuestName, u.Email AS GuestEmail, u.Phone AS GuestPhone,
-        (SELECT STRING_AGG(r.RoomName, ', ') FROM Booking_Room br JOIN Room r ON br.RoomID = r.RoomID WHERE br.BookingID = b.BookingID) AS Rooms
-      FROM Booking b
-      JOIN Hotel h ON b.HotelID = h.HotelID
-      JOIN Users u ON b.UserID = u.UserID
-      ORDER BY b.BookingID DESC
-    `);
-    res.json(result.recordset);
+    const result = await pool.query(`
+  SELECT b.*, h."name" AS "hotelname", h."location", u."name" AS "guestname", u."email" AS "guestemail", u."phone" AS "guestphone",
+    (SELECT STRING_AGG(r."roomname", ', ') FROM "booking_room" br JOIN "room" r ON br."roomid" = r."roomid" WHERE br."bookingid" = b."bookingid") AS "rooms"
+  FROM "booking" b
+  JOIN "hotel" h ON b."hotelid" = h."hotelid"
+  JOIN "users" u ON b."userid" = u."userid"
+  ORDER BY b."bookingid" DESC
+`);
+    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -158,20 +142,15 @@ export const updateBookingStatus = async (req, res) => {
 
   try {
     const pool = await getPool();
-    await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .input("status", sql.VarChar, status)
-      .query("UPDATE Booking SET Status=@status WHERE BookingID=@id");
+    await pool.query('UPDATE "booking" SET "status"=$1 WHERE "bookingid"=$2', [status, req.params.id]);
 
     if (status === "Cancelled") {
-      const rooms = await pool.request().input("id", sql.Int, req.params.id)
-        .query("SELECT RoomID FROM Booking_Room WHERE BookingID=@id");
-      for (const r of rooms.recordset) {
-        await pool.request().input("rid", sql.Int, r.RoomID)
-          .query("UPDATE Room SET Status='Available' WHERE RoomID=@rid");
+      const rooms = await pool.query('SELECT "roomid" FROM "booking_room" WHERE "bookingid"=$1', [req.params.id]);
+      for (const r of rooms.rows) {
+        await pool.query(`UPDATE "room" SET "status"='Available' WHERE "roomid"=$1`, [r.RoomID]);
       }
     }
+
     res.json({ message: "Booking status updated" });
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -182,17 +161,14 @@ export const updateBookingStatus = async (req, res) => {
 export const getBookingById = async (req, res) => {
   try {
     const pool = await getPool();
-    const result = await pool
-      .request()
-      .input("id", sql.Int, req.params.id)
-      .query(`
-        SELECT b.*, h.Name AS HotelName, h.Location, u.Name AS GuestName
-        FROM Booking b JOIN Hotel h ON b.HotelID = h.HotelID JOIN Users u ON b.UserID = u.UserID
-        WHERE b.BookingID = @id
-      `);
-    if (result.recordset.length === 0)
-      return res.status(404).json({ message: "Booking not found" });
-    res.json(result.recordset[0]);
+    const result = await pool.query(
+      `SELECT b.*, h."name" AS "hotelname", h."location", u."name" AS "guestname"
+   FROM "booking" b JOIN "hotel" h ON b."hotelid" = h."hotelid" JOIN "users" u ON b."userid" = u."userid"
+   WHERE b."bookingid" = $1`,
+      [req.params.id]
+    );
+    if (result.rows.length === 0) return res.status(404).json({ message: "Booking not found" });
+    res.json(result.rows[0]);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

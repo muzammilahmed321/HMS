@@ -18,13 +18,13 @@ const LABEL = "block font-jost text-xs font-medium text-neutral-600 mb-1.5";
 // ── Inline editable room row ────────────────────────────────
 function RoomRow({ room, onUpdate, onDelete }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ roomName: room.RoomName, price: room.Price, status: room.Status });
+  const [form, setForm] = useState({ roomName: room.roomname, price: room.price, status: room.status });
   const [saving, setSaving] = useState(false);
 
   const save = async () => {
     setSaving(true);
     try {
-      await onUpdate(room.RoomID, form);
+      await onUpdate(room.roomid, form);
       setEditing(false);
     } finally {
       setSaving(false);
@@ -67,19 +67,18 @@ function RoomRow({ room, onUpdate, onDelete }) {
     <div className="flex items-center justify-between px-3 py-2.5 rounded-lg border border-neutral-100 hover:bg-neutral-50 transition-colors group">
       <div className="flex items-center gap-3 flex-wrap">
         <Bed size={14} className="text-neutral-300 flex-shrink-0" />
-        <span className="font-jost font-medium text-sm">{room.RoomName}</span>
-        <span className="font-jost text-xs text-neutral-400">${room.Price}/night</span>
-        <span className={`text-xs border rounded-full px-2 py-0.5 ${
-          room.Status === "Available" ? "bg-green-50 text-green-700 border-green-100" :
-          room.Status === "Occupied" ? "bg-blue-50 text-blue-700 border-blue-100" :
-          "bg-orange-50 text-orange-700 border-orange-100"
-        }`}>{room.Status}</span>
+        <span className="font-jost font-medium text-sm">{room.roomname}</span>
+        <span className="font-jost text-xs text-neutral-400">${room.price}/night</span>
+        <span className={`text-xs border rounded-full px-2 py-0.5 ${room.status === "Available" ? "bg-green-50 text-green-700 border-green-100" :
+            room.status === "Occupied" ? "bg-blue-50 text-blue-700 border-blue-100" :
+              "bg-orange-50 text-orange-700 border-orange-100"
+          }`}>{room.status}</span>
       </div>
       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button onClick={() => setEditing(true)} className="p-1.5 rounded text-neutral-400 hover:text-brand-700 hover:bg-brand-50 transition-colors">
           <Edit2 size={13} />
         </button>
-        <button onClick={() => onDelete(room.RoomID, room.RoomName)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+        <button onClick={() => onDelete(room.roomid, room.roomname)} className="p-1.5 rounded text-neutral-400 hover:text-red-500 hover:bg-red-50 transition-colors">
           <Trash2 size={13} />
         </button>
       </div>
@@ -113,12 +112,13 @@ export default function EditHotelPage() {
         const h = hotelRes.data;
         setHotel(h);
         setForm({
-          name: h.Name,
-          location: h.Location,
-          checkinTime: parseTime(h.CheckinTime),
-          checkoutTime: parseTime(h.CheckoutTime),
+          name: h.name,
+          location: h.location,
+          checkinTime: parseTime(h.checkintime),
+          checkoutTime: parseTime(h.checkouttime),
         });
         setRooms(roomsRes.data);
+        console.log(roomsRes.data);
       })
       .catch(() => toast.error("Failed to load hotel data"))
       .finally(() => setPageLoading(false));
@@ -158,12 +158,12 @@ export default function EditHotelPage() {
     } catch { toast.error("Failed to update room"); }
   };
 
-  const handleDeleteRoom = async (roomId, roomName) => {
+  const handleDeleteRoom = async (roomid, roomName) => {
     if (!confirm(`Delete room "${roomName}"?`)) return;
     try {
-      await deleteRoom(roomId);
+      await deleteRoom(roomid);
       toast.success("Room deleted");
-      setRooms(rooms.filter((r) => r.RoomID !== roomId));
+      setRooms(rooms.filter((r) => r.roomid !== roomid));
     } catch { toast.error("Failed to delete room"); }
   };
 
@@ -183,7 +183,7 @@ export default function EditHotelPage() {
         </Link>
         <div>
           <p className="text-xs tracking-[3px] text-brand-600 uppercase mb-0.5">Management</p>
-          <h1 className="font-playfair text-3xl font-normal">Edit — {hotel?.Name}</h1>
+          <h1 className="font-playfair text-3xl font-normal">Edit — {hotel?.name}</h1>
         </div>
       </div>
 
@@ -206,24 +206,24 @@ export default function EditHotelPage() {
                 </div>
                 <div className="col-span-2">
                   <label className={LABEL}>Location</label>
-                  
-           <div className="relative">
-  {form.location.length === 0 && (
-    <MapPin
-      size={14}
-      className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
-    />
-  )}
 
-  <input
-    required
-    className={`${INPUT} w-full pl-10`}
-    value={form.location}
-    onChange={(e) =>
-      setForm({ ...form, location: e.target.value })
-    }
-  />
-</div>
+                  <div className="relative">
+                    {form.location.length === 0 && (
+                      <MapPin
+                        size={14}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none"
+                      />
+                    )}
+
+                    <input
+                      required
+                      className={`${INPUT} w-full pl-10`}
+                      value={form.location}
+                      onChange={(e) =>
+                        setForm({ ...form, location: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
                 <div>
                   <label className={LABEL}><span className="flex items-center gap-1"><Clock size={11} /> Check-in Time</span></label>
@@ -303,7 +303,7 @@ export default function EditHotelPage() {
               <div className="space-y-2">
                 {rooms.map((room) => (
                   <RoomRow
-                    key={room.RoomID}
+                    key={room.roomid}
                     room={room}
                     onUpdate={handleUpdateRoom}
                     onDelete={handleDeleteRoom}

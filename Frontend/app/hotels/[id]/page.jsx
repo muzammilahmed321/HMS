@@ -60,8 +60,8 @@ export default function HotelDetailPage() {
     if (!form.checkIn || !form.checkOut || selectedRooms.length === 0) return 0;
     const nights = Math.ceil((new Date(form.checkOut) - new Date(form.checkIn)) / 86400000);
     const basePrice = selectedRooms.reduce((sum, rid) => {
-      const r = rooms.find((x) => x.RoomID === rid);
-      return sum + (r ? parseFloat(r.Price) : 0);
+      const r = rooms.find((x) => x.roomid === rid);
+      return sum + (r ? parseFloat(r.price) : 0);
     }, 0);
     const extraAdults = Math.max(0, form.adults - 2);
     return ((basePrice * nights) + (extraAdults * 20 * nights)).toFixed(2);
@@ -98,13 +98,13 @@ export default function HotelDetailPage() {
 
       {/* Hero */}
       <div className="relative h-80 mt-16 overflow-hidden">
-        <img src={hotel.MainImage || "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1400&q=80"} alt={hotel.Name} className="w-full h-full object-cover" />
+        <img src={hotel.mainimage || "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=1400&q=80"} alt={hotel.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-black/20" />
         <div className="absolute bottom-8 left-8 text-white">
-          <h1 className="font-playfair text-4xl font-normal mb-2">{hotel.Name}</h1>
+          <h1 className="font-playfair text-4xl font-normal mb-2">{hotel.name}</h1>
           <div className="flex items-center gap-4 font-jost font-light text-sm text-white/80">
-            <span className="flex items-center gap-1"><MapPin size={14} />{hotel.Location}</span>
-            <span className="flex items-center gap-1"><Clock size={14} />Check-in: {formatTime(hotel.CheckinTime)}</span>
+            <span className="flex items-center gap-1"><MapPin size={14} />{hotel.location}</span>
+            <span className="flex items-center gap-1"><Clock size={14} />Check-in: {formatTime(hotel.checkintime)}</span>
           </div>
         </div>
       </div>
@@ -162,15 +162,15 @@ export default function HotelDetailPage() {
             ) : (
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
                 {rooms.map((room) => {
-                  const selected = selectedRooms.includes(room.RoomID);
+                  const selected = selectedRooms.includes(room.roomid);
                   return (
-                    <div key={room.RoomID} onClick={() => toggleRoom(room.RoomID)} className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${selected ? "border-brand-600 bg-brand-50" : "border-neutral-100 bg-white hover:border-brand-200 hover:shadow-sm"}`}>
+                    <div key={room.roomid} onClick={() => toggleRoom(room.roomid)} className={`border-2 rounded-xl p-5 cursor-pointer transition-all duration-200 ${selected ? "border-brand-600 bg-brand-50" : "border-neutral-100 bg-white hover:border-brand-200 hover:shadow-sm"}`}>
                       <div className="flex items-start justify-between mb-3">
-                        <h3 className="font-playfair text-lg">{room.RoomName}</h3>
+                        <h3 className="font-playfair text-lg">{room.roomname}</h3>
                         {selected && <CheckCircle size={18} className="text-brand-600 flex-shrink-0" />}
                       </div>
-                      <div className="font-playfair text-2xl text-brand-700 mb-1">${room.Price}<span className="font-jost font-light text-xs text-neutral-400">/night</span></div>
-                      {nights > 0 && <p className="font-jost text-xs text-neutral-400">${(parseFloat(room.Price) * nights).toFixed(2)} for {nights} nights</p>}
+                      <div className="font-playfair text-2xl text-brand-700 mb-1">${room.price}<span className="font-jost font-light text-xs text-neutral-400">/night</span></div>
+                      {nights > 0 && <p className="font-jost text-xs text-neutral-400">${(parseFloat(room.price) * nights).toFixed(2)} for {nights} nights</p>}
                       <span className="mt-3 inline-block text-xs font-jost bg-green-50 text-green-700 border border-green-100 rounded-full px-2 py-0.5">Available</span>
                     </div>
                   );

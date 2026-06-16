@@ -1,90 +1,3 @@
-// "use client";
-// import { useEffect, useState } from "react";
-// import { getHotels, getAllBookings, getMaintenance } from "../../app/api";
-// import { Building2, Calendar, Wrench, TrendingUp } from "lucide-react";
-
-// export default function AdminDashboard() {
-//   const [stats, setStats] = useState({ hotels: 0, bookings: 0, maintenance: 0, revenue: 0 });
-//   const [recentBookings, setRecentBookings] = useState([]);
-
-//   useEffect(() => {
-//     Promise.all([getHotels(), getAllBookings(), getMaintenance()]).then(([h, b, m]) => {
-//       const revenue = b.data.filter((x) => x.Status !== "Cancelled").reduce((sum, x) => sum + parseFloat(x.GrandTotal), 0);
-//       setStats({ hotels: h.data.length, bookings: b.data.length, maintenance: m.data.filter((x) => x.Status !== "Resolved").length, revenue });
-//       setRecentBookings(b.data.slice(0, 5));
-//     }).catch(() => {});
-//   }, []);
-
-//   const cards = [
-//     { label: "Total Hotels", value: stats.hotels, icon: Building2, color: "bg-blue-50 text-blue-600" },
-//     { label: "Total Bookings", value: stats.bookings, icon: Calendar, color: "bg-green-50 text-green-600" },
-//     { label: "Open Maintenance", value: stats.maintenance, icon: Wrench, color: "bg-orange-50 text-orange-600" },
-//     { label: "Total Revenue", value: `$${stats.revenue.toFixed(0)}`, icon: TrendingUp, color: "bg-brand-50 text-brand-600" },
-//   ];
-
-//   return (
-//     <div>
-//       <div className="mb-8">
-//         <p className="text-xs tracking-[3px] text-brand-600 uppercase mb-1">Overview</p>
-//         <h1 className="font-playfair text-4xl font-normal">Dashboard</h1>
-//       </div>
-
-//       {/* Stats Cards */}
-//       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-//         {cards.map(({ label, value, icon: Icon, color }) => (
-//           <div key={label} className="bg-white rounded-2xl p-5 border border-neutral-100 shadow-sm">
-//             <div className={`w-10 h-10 rounded-xl ${color} flex items-center justify-center mb-3`}>
-//               <Icon size={18} />
-//             </div>
-//             <div className="font-playfair text-3xl text-neutral-800 mb-1">{value}</div>
-//             <div className="font-jost text-xs text-neutral-400 tracking-wide">{label}</div>
-//           </div>
-//         ))}
-//       </div>
-
-//       {/* Recent Bookings */}
-//       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
-//         <h2 className="font-playfair text-xl mb-5">Recent Bookings</h2>
-//         <div className="overflow-x-auto">
-//           <table className="w-full text-sm font-jost">
-//             <thead>
-//               <tr className="border-b border-neutral-100">
-//                 {["ID", "Guest", "Hotel", "Check-in", "Check-out", "Total", "Status"].map((h) => (
-//                   <th key={h} className="text-left py-3 px-2 text-xs font-medium text-neutral-400 uppercase tracking-wide">{h}</th>
-//                 ))}
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {recentBookings.map((b) => (
-//                 <tr key={b.BookingID} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
-//                   <td className="py-3 px-2 text-neutral-400">#{b.BookingID}</td>
-//                   <td className="py-3 px-2 font-medium">{b.GuestName}</td>
-//                   <td className="py-3 px-2 text-neutral-600">{b.HotelName}</td>
-//                   <td className="py-3 px-2 text-neutral-500">{new Date(b.CheckIn).toLocaleDateString()}</td>
-//                   <td className="py-3 px-2 text-neutral-500">{new Date(b.CheckOut).toLocaleDateString()}</td>
-//                   <td className="py-3 px-2 font-medium text-brand-700">${parseFloat(b.GrandTotal).toFixed(2)}</td>
-//                   <td className="py-3 px-2">
-//                     <span className={`text-xs rounded-full px-2 py-0.5 border ${
-//                       b.Status === "Confirmed" ? "bg-blue-50 text-blue-700 border-blue-100" :
-//                       b.Status === "Completed" ? "bg-green-50 text-green-700 border-green-100" :
-//                       "bg-red-50 text-red-700 border-red-100"
-//                     }`}>{b.Status}</span>
-//                   </td>
-//                 </tr>
-//               ))}
-//               {recentBookings.length === 0 && (
-//                 <tr><td colSpan={7} className="py-10 text-center text-neutral-400 font-light">No bookings yet</td></tr>
-//               )}
-//             </tbody>
-//           </table>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-
-
 "use client";
 import { useEffect, useState } from "react";
 import { getHotels, getAllBookings, getMaintenance } from "../api";
@@ -359,12 +272,12 @@ export default function AdminDashboard() {
     Promise.all([getHotels(), getAllBookings(), getMaintenance()])
       .then(([h, b, m]) => {
         const revenue = b.data
-          .filter((x) => x.Status !== "Cancelled")
-          .reduce((sum, x) => sum + parseFloat(x.GrandTotal), 0);
+          .filter((x) => x.status !== "Cancelled")
+          .reduce((sum, x) => sum + parseFloat(x.grandtotal), 0);
         setStats({
           hotels: h.data.length,
           bookings: b.data.length,
-          maintenance: m.data.filter((x) => x.Status !== "Resolved").length,
+          maintenance: m.data.filter((x) => x.status !== "Resolved").length,
           revenue,
         });
         setRecentBookings(b.data.slice(0, 5));
@@ -467,20 +380,20 @@ export default function AdminDashboard() {
             </thead>
             <tbody>
               {recentBookings.map((b) => (
-                <tr key={b.BookingID} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
-                  <td className="py-3 px-2 text-neutral-400">#{b.BookingID}</td>
-                  <td className="py-3 px-2 font-medium">{b.GuestName}</td>
-                  <td className="py-3 px-2 text-neutral-600">{b.HotelName}</td>
-                  <td className="py-3 px-2 text-neutral-500">{new Date(b.CheckIn).toLocaleDateString()}</td>
-                  <td className="py-3 px-2 text-neutral-500">{new Date(b.CheckOut).toLocaleDateString()}</td>
-                  <td className="py-3 px-2 font-medium text-brand-700">${parseFloat(b.GrandTotal).toFixed(2)}</td>
+                <tr key={b.bookingid} className="border-b border-neutral-50 hover:bg-neutral-50 transition-colors">
+                  <td className="py-3 px-2 text-neutral-400">#{b.bookingid}</td>
+                  <td className="py-3 px-2 font-medium">{b.guestname}</td>
+                  <td className="py-3 px-2 text-neutral-600">{b.hotelname}</td>
+                  <td className="py-3 px-2 text-neutral-500">{new Date(b.checkin).toLocaleDateString()}</td>
+                  <td className="py-3 px-2 text-neutral-500">{new Date(b.checkout).toLocaleDateString()}</td>
+                  <td className="py-3 px-2 font-medium text-brand-700">${parseFloat(b.grandtotal).toFixed(2)}</td>
                   <td className="py-3 px-2">
                     <span className={`text-xs rounded-full px-2 py-0.5 border ${
-                      b.Status === "Confirmed" ? "bg-blue-50 text-blue-700 border-blue-100" :
-                      b.Status === "Completed" ? "bg-green-50 text-green-700 border-green-100" :
+                      b.status === "Confirmed" ? "bg-blue-50 text-blue-700 border-blue-100" :
+                      b.status === "Completed" ? "bg-green-50 text-green-700 border-green-100" :
                       "bg-red-50 text-red-700 border-red-100"
                     }`}>
-                      {b.Status}
+                      {b.status}
                     </span>
                   </td>
                 </tr>
